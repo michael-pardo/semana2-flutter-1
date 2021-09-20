@@ -10,8 +10,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String expression = "";
-  String result = "";
+  List<String> expression = [];
+  String result = "=";
+
+  static const colorBg = Color(0x353535);
+  static const colorAccent = Color(0x3D3D3D);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,13 +25,19 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            getContainerText(result,5),
+            getContainerText(
+                result,
+                5
+            ),
             getDivider(),
-            getContainerText(expression,3),
+            getContainerText(
+                expression.getExpressionText(),
+                3
+            ),
             Row(
               children: [
                 getBoton(text:"7",method: (String text){
-
+                  addBtnPressed(text);
                 }),
                 getBoton(text:"8",method: (String text){
                   addBtnPressed(text);
@@ -38,7 +48,7 @@ class _HomePageState extends State<HomePage> {
                 getBoton(text:"÷",method: (String text){
                   addBtnPressed(text);
                 }),
-                getBoton(text:"<-",method: (String text){
+                getBoton(text:"←",method: (String text){
                   addBtnPressed(text);
                 }),
                 getBoton(text:"C",method: (String text){
@@ -116,17 +126,17 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget getBoton({required String text, int valorFlex = 1, required dynamic method, MaterialColor color = Colors.blue}){
+  Widget getBoton({required String text, int valorFlex = 1, required dynamic method, Color color = colorAccent}){
     return Expanded(
         flex: valorFlex,
         child: Container(
             padding: EdgeInsets.only(left: 2, right: 2),
             child: ElevatedButton(
-              onPressed: (){
-                method(text);
-              },
-              child: Text(text),
-              autofocus: false,
+                onPressed: (){
+                  method(text);
+                },
+                child: Text(text),
+                autofocus: false,
                 style: ElevatedButton.styleFrom(
                   primary: color,
                 )
@@ -154,6 +164,7 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(fontSize: 32),
           maxLines: 10,
         ),
+        color: colorAccent,
       ),
     );
   }
@@ -164,23 +175,41 @@ class _HomePageState extends State<HomePage> {
         case "=":
           try {
             Parser p = Parser();
-            Expression exp = p.parse(expression.cleanExpression());
+            Expression exp = p.parse(expression.getExpressionText().cleanExpression());
             ContextModel cm = ContextModel();
-            result = (exp.evaluate(EvaluationType.REAL, cm));
-            expression = "";
+            final resultStr = exp.evaluate(EvaluationType.REAL, cm).toString();
+            print(resultStr);
+            switch (resultStr.toUpperCase()){
+              case "INFINITY":
+                result = "Syntax ERROR - Division by 0";
+                break;
+              case "NAN":
+                result = "Syntax ERROR - SQRT Imaginary error";
+                break;
+              default:
+                result = resultStr;
+            }
           } catch (e) {
-            print(e);
-            result = "Syntax ERROR";
+            final errorMessage = e.toString().getLocalizedMessage();
+            result = "Syntax ERROR - $errorMessage";
           }
           break;
         case "√":
-          expression += "√(";
+          expression.add("√("); ;
           break;
         case "x²":
-          expression += "²";
+          expression.add("²");
+          break;
+        case "←":
+          if (expression.isNotEmpty) expression.removeLast();
+          if (expression.isEmpty) result = "=";
+          break;
+        case "C":
+          expression = [];
+          result = "=";
           break;
         default:
-          expression += text;
+          expression.add(text);
       }
     });
   }
